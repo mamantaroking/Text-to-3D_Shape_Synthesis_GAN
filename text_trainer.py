@@ -1,17 +1,14 @@
 import torch
 from tqdm import tqdm
 import os
-from textto3dgan.preprocessing import textAndShapeLoader, dataset
-from textto3dgan import utils, intro
-from textto3dgan.intro import num_epochs, batch_size, dataroot, Dlr, Glr, plotter, plotting_FID, loss_Save, fid_Save
-# from textto3dgan.new_texter_model7 import textD, textG, criterion, optimizerD, optimizerG, nz
-from textto3dgan.new_texter_model8 import textD, textG, criterion, optimizerD, optimizerG, nz
-# from textto3dgan.new_texter_model3 import textD, textG, criterion, optimizerD, optimizerG, nz
-from SANITY_CHECK import ShowVoxelModel
-from FIDType2 import calculate_fid
+from preprocessing import textAndShapeLoader, dataset
+from params import num_epochs, batch_size, dataroot, Dlr, Glr, plotter, plotting_FID, loss_Save, fid_Save
+# from model1D import textD, textG, criterion, optimizerD, optimizerG, nz
+from model2 import textD, textG, criterion, optimizerD, optimizerG, nz
+from voxel_checker import ShowVoxelModel
+from FID_calculator import calculate_fid
 from torch.cuda.amp import GradScaler, autocast
 import time
-import csv
 from torch.optim.lr_scheduler import StepLR
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'

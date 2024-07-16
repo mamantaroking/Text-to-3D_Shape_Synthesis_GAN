@@ -1,23 +1,12 @@
-import argparse
-import os
 import random
-import torch
-import torch.nn as nn
-import torch.nn.parallel
-import torch.optim as optim
 import torch.utils.data
-import torchvision.datasets as dset
-import torchvision.transforms as transforms
-import torchvision.utils as vutils
-import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from IPython.display import HTML
+import csv
 
 # Set random seed for reproducibility
-# manualSeed = 1
+manualSeed = 1
 # manualSeed = random.randint(1, 10000) # Use if want new results
-manualSeed = random.randint(1, 5)
+# manualSeed = random.randint(0, 1)
 # print("Random Seed: ", manualSeed)
 random.seed(manualSeed)
 torch.manual_seed(manualSeed)
@@ -31,12 +20,12 @@ torch.use_deterministic_algorithms(True) # Needed for reproducible results
 dataroot = '/binvox_training chairs/'
 
 # Number of worker threads for the DataLoader
-workers = 2
+workers = 0
 
 # Batch size during training
-# batch_size = 22
-# batch_size = 77
-batch_size = 16
+# batch_size = 16
+# batch_size = 32
+batch_size = 64
 
 # The spatial size of shaped used in training. Default is 64x64x64, if another size is desired,
 # changes in D and G must be made
@@ -49,7 +38,6 @@ nc = 1
 # length of latent vector (size of random noise input into generator)
 # nz = 256
 nz = 1024
-nzs = "norm"
 
 # depths of feature maps carried through the generator
 ngf = 64
@@ -58,22 +46,16 @@ ngf = 64
 ndf = 64
 
 # number of training epochs
-num_epochs = 200
+num_epochs = 50
 
-# learning rate for optimizers 128x
-# Dlr = 0.00005
-# Glr = 0.0001
+# model 1d
+# Dlr = 0.00088
+# Glr = 0.005
 
-# learning rate for optimizers 64x simple descriptions
-# Dlr = 0.000025
-# Glr = 0.00013
-
-# learning rate for optimizers 64x
+# model 2
 Dlr = 0.00005
-Glr = 0.0008
-# learning rate for optimizers 64x 2800 two label data
-Dlr = 0.00005
-Glr = 0.0012
+Glr = 0.02
+
 
 # Beta1 hyperparameter for Adam optimizers
 beta1 = 0.5
@@ -93,6 +75,17 @@ def plotter(D_losses, G_losses, path):
     plt.savefig(path + '/GAN_losses.png')
     plt.show()
 
+def plotting_FID(fid, path):
+    plt.figure(figsize=(10, 5))
+    plt.title("FID Score During Training Per Epoch")
+    plt.plot(fid, label="FID Score")
+    plt.xlabel("Epochs")
+    plt.ylabel("FID Score")
+    plt.legend()
+    plt.savefig(path + '/FID_Score.png')
+    plt.show()
+
+
 def accuring(accuracy, path):
     plt.figure(figsize=(10, 5))
     plt.title("Accuracy During Training")
@@ -103,3 +96,26 @@ def accuring(accuracy, path):
     plt.savefig(path + '/Accuracy.png')
     plt.show()
 
+def loss_Save(G_losses, D_losses, csv_file_path):
+    with open(csv_file_path, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        # Write the header
+        writer.writerow(['Epoch', 'G_loss', 'D_loss'])
+
+        # Write the data
+        for epoch, (g_loss, d_loss) in enumerate(zip(G_losses, D_losses)):
+            writer.writerow([epoch + 1, g_loss, d_loss])
+
+    print(f"Losses saved to {csv_file_path}")
+
+def fid_Save(fid, csv_file_path):
+    with open(csv_file_path, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        # Write the header
+        writer.writerow(['Epoch', 'FID Score'])
+
+        # Write the data
+        for epoch, fid in enumerate(zip(fid)):
+            writer.writerow([epoch + 1, fid])
+
+    print(f"Losses saved to {csv_file_path}")

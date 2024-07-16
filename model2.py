@@ -2,9 +2,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data
 
-from intro import ngpu, ngf, nc, ndf, Glr, Dlr, beta1, batch_size
-# from textto3dgan.new_data_loader import device
-# from textto3dgan.binvox_dataloader import device
+from params import ngpu, ngf, nc, ndf, Glr, Dlr, beta1, batch_size
 from preprocessing import device
 from torchinfo import summary
 import os

@@ -1,5 +1,4 @@
 from glob import glob
-
 import pandas as pd
 from transformers import BertModel, BertTokenizer
 from torch.utils.data import Dataset
@@ -7,7 +6,7 @@ import numpy as np
 import torch
 import binvox_rw
 import os
-from intro import batch_size
+from params import batch_size
 
 # Load pre-trained model and tokenizer
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')

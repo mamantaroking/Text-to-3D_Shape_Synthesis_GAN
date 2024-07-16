@@ -1,18 +1,10 @@
 import torch
-import torch.nn as nn
-import numpy as np
-import os
-from torchvision.utils import save_image
-import plotly.graph_objects as go
-from SANITY_CHECK import ShowVoxelModel
-from new_texter_model7 import textG, device, nz
-# from textto3dgan.preprocessing import textAndShapeLoader, textAndShape
-# from textto3dgan.intro import  batch_size
+from voxel_checker import ShowVoxelModel
+from model1D import textG, device, nz
 from transformers import BertModel, BertTokenizer
 from pytorch3d.ops import cubify
 from pytorch3d.io import save_obj
 import streamlit as st
-from FIDType2 import calculate_fid
 
 model_path = 'C:/Users/Maman/PycharmProjects/fyp/textto3dgan/model_save/models_inCaptive/G.pth'
 textG.load_state_dict(torch.load(model_path))
