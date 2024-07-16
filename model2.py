@@ -32,12 +32,21 @@ class Generator(nn.Module):
 
         # text embedding layers
         self.text_embedding = nn.Sequential(
-            nn.Linear(768, nz * 4, bias=False),  # 768 is the size of BERT embeddings,
-            nn.BatchNorm1d(nz * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(nz * 4, nz * 2, bias=False),  # 768 is the size of BERT embeddings,
+            nn.Linear(768, nz * 2, bias=False),  # 768 is the size of BERT embeddings,
             nn.BatchNorm1d(nz * 2),
             nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(nz * 2, nz, bias=False),  # 768 is the size of BERT embeddings,
+            nn.BatchNorm1d(nz),
+            nn.LeakyReLU(0.2, inplace=True),
+            # nn.Linear(nz * 4, nz * 2, bias=False),  # 768 is the size of BERT embeddings,
+            # nn.BatchNorm1d(nz * 2),
+            # nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(nz, nz * 2, bias=False),  # 768 is the size of BERT embeddings,
+            nn.BatchNorm1d(nz * 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(nz * 2, nz * 4, bias=False),  # 768 is the size of BERT embeddings,
+            nn.BatchNorm1d(nz * 4),
+            nn.LeakyReLU(0.2, inplace=True)
             # nn.Linear(nz * 2, nz, bias=False),  # 768 is the size of BERT embeddings,
             # nn.BatchNorm1d(nz),
             # nn.LeakyReLU(0.2, inplace=True)
@@ -47,26 +56,31 @@ class Generator(nn.Module):
         self.main = nn.Sequential(
             # nn.ConvTranspose3d(nz + 768, ngf * 8, 4, 1, 0, bias=False),  # Adjust the number of input channels
             # input is random noise Z, going into a convolution
-            nn.ConvTranspose3d(nz * 4, ngf * 8, 4, 1, 0, bias=False),
-            nn.BatchNorm3d(ngf * 8),
+            nn.ConvTranspose3d(nz * 8, ngf * 12, 6, 1, 0, bias=False),
+            nn.BatchNorm3d(ngf * 12),
             nn.ReLU(True),
             # state size. ''(ngf*8) x 4 x 4''
-            nn.ConvTranspose3d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
+            nn.ConvTranspose3d(ngf * 12, ngf * 8, 6, 1, 1, bias=False),
+            nn.BatchNorm3d(ngf * 8),
+            nn.ReLU(True),
+            nn.ConvTranspose3d(ngf * 8, ngf * 4, 6, 1, 1, bias=False),
             nn.BatchNorm3d(ngf * 4),
             nn.ReLU(True),
             # state size. ''(ngf*4) x 8 x 8''
-            nn.ConvTranspose3d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
+            nn.ConvTranspose3d(ngf * 4, ngf * 2, 6, 1, 1, bias=False),
             nn.BatchNorm3d(ngf * 2),
             nn.ReLU(True),
             # state size. ''(ngf*2) x 16 x 16''
-            nn.ConvTranspose3d(ngf * 2, ngf * 1, 4, 2, 1, bias=False),
-            nn.BatchNorm3d(ngf * 1),
+            nn.ConvTranspose3d(ngf * 2, ngf, 6, 2, 1, bias=False),
+            nn.BatchNorm3d(ngf),
             nn.ReLU(True),
+            # nn.ConvTranspose3d(ngf * 2, ngf, 6, 1, 1, bias=False),
+            # nn.BatchNorm3d(ngf),
+            # nn.ReLU(True),
             # state size. ''(ngf) x 32 x 32''
-            nn.ConvTranspose3d(ngf * 1, nc, 4, 2, 1, bias=False),
+            nn.ConvTranspose3d(ngf, nc, 4, 2, 1, bias=False),
             # nn.Tanh()
-            nn.Sigmoid(),
-            nn.BatchNorm3d(1)
+            nn.Sigmoid()
             # state size. ''(nc) x 64 x 64''
         )
 
@@ -113,7 +127,7 @@ textG.apply(weights_init)
 
 # Print the model
 # print(textG)
-noise = [64, 512, 1, 1, 1]
+noise = [64, 1024, 1, 1, 1]
 text = [64, 768]  # assuming the text input is a 1024-dimensional vector
 summary(model=textG, input_size=[noise, text])
 
@@ -161,12 +175,11 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
         )
         self.output = nn.Sequential(
-            nn.Conv3d(nz * 4, nz * 2, 1, 1, 0, bias=False),
-            nn.BatchNorm3d(nz * 2),
+            nn.Conv3d(nz * 4, ngf * 4, 1, 1, 0, bias=False),
+            nn.BatchNorm3d(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv3d(nz * 2, 1, 4, 1, 0, bias=False),
-            nn.Sigmoid(),
-            # nn.BatchNorm3d(1)
+            nn.Conv3d(nz, 1, 4, 1, 0, bias=False),
+            nn.Sigmoid()
         )
 
 
@@ -225,57 +238,19 @@ textD.apply(weights_init)
 
 '''Define the loss functions'''
 # Initialize the ''BCELoss'' function
-# criterion = nn.BCEWithLogitsLoss()
 criterion = nn.BCELoss()
-# criterion = nn.CrossEntropyLoss()
-
-def gradient_penalty(gradient):
-    gradient = gradient.view(len(gradient), -1)
-
-    gradient_norm = gradient.norm(2, dim=1)
-
-    penalty = torch.mean((gradient_norm - 1) ** 2)
-    return penalty
-
-def get_gen_loss(crit_fake_pred):
-    gen_loss = -1. * torch.mean(crit_fake_pred)
-    return gen_loss
-
-def get_crit_loss(crit_fake_pred, crit_real_pred, gp, c_lambda):
-    crit_loss = torch.mean(crit_fake_pred) - torch.mean(crit_real_pred) + c_lambda * gp
-    return crit_loss
-
-
-def get_gradient(crit, real, fake, text, epsilon):
-    mixed_images = real * epsilon + fake * (1 - epsilon)
-
-    mixed_scores = crit(mixed_images, text)
-
-    gradient = torch.autograd.grad(
-        inputs=mixed_images,
-        outputs=mixed_scores,
-        grad_outputs=torch.ones_like(mixed_scores),
-        create_graph=True,
-        retain_graph=True,
-
-    )[0]
-    return gradient
 
 # Create batch of latent vectors that we will use to visualize
 # the progression of the generator
-# fixed_noise = torch.randn(64, nz, 1, 1, 1, device=device)
+fixed_noise = torch.randn(64, nz, 1, 1, 1, device=device)
 
 # Establish convention for real and fake laebls during training
 real_label = 1.
 fake_label = 0.
 
 # Setup Adam optimizers for both G and D
-# optimizerD = optim.Adam(textD.parameters(), lr=Dlr, betas=(beta1, 0.999))
-# optimizerG = optim.Adam(textG.parameters(), lr=Glr, betas=(beta1, 0.999))
-optimizerD = optim.SGD(textD.parameters(), lr=Dlr)
-optimizerG = optim.SGD(textG.parameters(), lr=Glr)
-# optimizerD = optim.RMSprop(textD.parameters(), lr=Dlr)
-# optimizerG = optim.RMSprop(textG.parameters(), lr=Glr)
+optimizerD = optim.Adam(textD.parameters(), lr=Dlr, betas=(beta1, 0.999))
+optimizerG = optim.Adam(textG.parameters(), lr=Glr, betas=(beta1, 0.999))
 
 noise = [64, 1, 64, 64, 64]
 text = [64, 768]  # assuming the text input is a 1024-dimensional vector
